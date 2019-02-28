@@ -1,0 +1,85 @@
+---
+title: "Course Enrollment Drops and Jumps"
+author: "Hemanth Bharatha Chakravarthy"
+date: "2/26/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(gt)
+library(devtools)
+library(readxl)
+library(styler)
+library(lintr)
+library(janitor)
+library(ggridges)
+library(viridis)
+library(lubridate)
+
+
+download.file(
+  url = "https://registrar.fas.harvard.edu/files/fas-registrar/files/class_enrollment_summary_by_term_2.28.19.xlsx",
+  destfile = "spring_2019.xlsx",
+  mode = "wb")
+
+download.file(
+  url = "https://registrar.fas.harvard.edu/files/fas-registrar/files/class_enrollment_summary_by_term_03.06.18.xlsx",
+  destfile = "spring_2018.xlsx",
+  mode = "wb")
+
+spring_19 <- read_excel("spring_2019.xlsx", skip = 3) %>% 
+  clean_names() %>% 
+  filter(!is.na(u_grad), !is.na(course_title)) %>% 
+  select(course_title, course_name, course_department, u_grad, grad, non_degree, x_reg, withdraw, total)
+
+spring_18 <- read_excel("spring_2018.xlsx", skip = 3) %>% 
+  clean_names() %>% 
+  filter(!is.na(u_grad), !is.na(course_title)) %>% 
+  select(course_title, course_name, course_department, u_grad, grad, non_degree, x_reg, withdraw, total)
+
+fs::file_delete(c("spring_2018.xlsx", "spring_2019.xlsx"))
+```
+# Biggest Drops in Enrollment
+We did this in class today, 26 February 2019 (aka Week 5, class 1).
+
+```{r table}
+x_2019 <- spring_19 %>% 
+  select(course_title, course_name, u_grad)
+x_2018 <- spring_18 %>% 
+  select(course_title, course_name, u_grad)
+spring_both <- x_2018 %>% 
+  left_join(x_2019, by = c("course_title", "course_name")) %>% 
+  rename(e_2018 = u_grad.x, e_2019 = u_grad.y) %>% 
+  mutate(difference = e_2018 - e_2019)
+
+table_1 <- spring_both %>% 
+  arrange(desc(difference)) %>% 
+  top_n(10) %>% 
+  mutate(difference = -(difference))
+
+table_1 %>%
+  gt() %>% 
+  tab_header(title = "Biggest Enrollment Decreases in Spring 2019") %>%
+  tab_source_note(
+    source_note = "Data from the Harvard Registrar"
+  ) %>% 
+  cols_label(
+    course_title = html("Number"),
+    course_name = html("Name"),
+    e_2019 = html("2019"),
+    e_2018 = html("2018"),
+    difference = html("Change")
+  )%>% 
+  fmt_number(
+    columns = vars(e_2018),
+    decimals = 0) %>%
+  fmt_number(
+    columns = vars(e_2019),
+    decimals = 0) %>%
+  fmt_number(
+    columns = vars(difference),
+    decimals = 0,
+    negative_val = "signed")
+```
