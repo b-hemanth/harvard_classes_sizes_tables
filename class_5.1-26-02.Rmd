@@ -1,10 +1,9 @@
 ---
-title: "Course Enrollment Drops and Jumps"
+title: "Harvard Course Enrollment Analysis"
 author: "Hemanth Bharatha Chakravarthy"
 date: "2/26/2019"
 output: html_document
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(tidyverse)
@@ -42,7 +41,6 @@ spring_18 <- read_excel("spring_2018.xlsx", skip = 3) %>%
 fs::file_delete(c("spring_2018.xlsx", "spring_2019.xlsx"))
 ```
 # Biggest Drops in Enrollment
-We did this in class today, 26 February 2019 (aka Week 5, class 1).
 
 ```{r table}
 x_2019 <- spring_19 %>% 
@@ -83,3 +81,34 @@ table_1 %>%
     decimals = 0,
     negative_val = "signed")
 ```
+
+
+# Biggest New Classes 
+```{r big_new}
+y_2019 <- spring_19 %>% 
+  select(course_title, course_name, u_grad, course_department)
+y_2018 <- spring_18 %>% 
+  select(course_title, course_name, u_grad, course_department)
+spring_2 <- y_2019 %>% 
+  anti_join(y_2018, by = c("course_title", "course_name")) %>% 
+  arrange(desc(u_grad)) %>% 
+  select(course_department, everything()) %>% 
+  top_n(10)
+
+spring_2 %>%
+  gt() %>% 
+  tab_header(title = "Biggest New Classes in Spring 2019") %>%
+  tab_source_note(
+    source_note = "Data from the Harvard Registrar"
+  ) %>% 
+  cols_label(
+    course_department = html("Department"),
+    course_title = html("Number"),
+    course_name = html("Name"),
+    u_grad = html("Enrollment")
+  )%>% 
+  fmt_number(
+    columns = vars(u_grad),
+    decimals = 0) 
+```
+
